@@ -1,0 +1,11 @@
+name = The Verge News
+description = Provides a block with recent The Verge news.
+
+core = 7.x
+package = Custom
+
+; Add a style sheet for all media
+stylesheets[all][] = theverge_news.main.css
+
+; Link to configuration page, set in theverge_news.module: theverge_news_menu()
+configure = admin/config/content/theverge_news

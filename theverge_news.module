@@ -1,0 +1,162 @@
+<?php
+  /**
+   * @file
+   * Creates block and configuration to The Verge News module.
+   * The module uses The Verge open REST API to fetch recent news, and
+   * displays then in a block.
+   * All rights reserved for The Verge (2015), for news content.
+   *
+   * @author Alberto Anceschi <anceschialberto@icloud.com>
+   */
+
+  /**
+   * Parse an XML file based on Atom standard.
+   */
+  function parseAtom($xml) {
+    $cnt = count($xml->entry);
+    $items = null;
+    for ($i=0; $i<$cnt; $i++) {
+      $urlAtt = $xml->entry[$i]->link->attributes();
+      $url = $urlAtt['href'];
+      $title = $xml->entry[$i]->title;
+      $desc = strip_tags($xml->entry[$i]->content);
+      $published = $xml->entry[$i]->published;
+
+      //Drupalized data.
+      $theverge_news_headline = l($title, $url, $option = array(
+          'attributes' => array(
+              'class' => 'headline_href',
+              'target' => '_blank',
+          ),
+      ));
+      $theverge_news_datetime = $published;
+
+      // Create li item with content.
+      $items[] = array(
+          'data' => '<h3 class="headline">' . $theverge_news_headline . '</h3>' .
+              '<div class="datetime">' . $theverge_news_datetime . '</div>' ,
+          'id' => 'news-' . $url,
+      );
+    }
+    return $items;
+  }
+
+  /**
+   * Implements hook_help().
+   *
+   * You can add documentation and help here (in admin/help#theverge_news). This
+   * documentation can help the users use and extend you module.
+   *
+   * @url: https://api.drupal.org/api/drupal/modules!help!help.api.php/function/hook_help/7
+   */
+  function theverge_news_help($path, $arg) {
+    switch ($path) {
+      case 'admin/setting/theverge_news':
+        return t('This module displays a block which shows a list recent The Verge news..');
+
+      case 'admin/help#theverge_news';
+        $output = '<h2>' . t('About') . '</h2>';
+        $output .= '<p>' . t('Displays recent news from The Verge.') . '</p>';
+        $output .= '<p>' . t('The news is fetched with The Verge open REST API, all rights reserved to The Verge (2015).') . '</p>';
+        return $output;
+    }
+  }
+
+  /**
+   * Implements hook_block_info().
+   * 
+   * Declares a block to provide to Drupal. This can also specify block
+   * configuration settings, like here where the cache is determined be the
+   * user role.
+   *
+   * @url: https://api.drupal.org/api/drupal/modules!block!block.api.php/function/hook_block_info/7
+   */
+  function theverge_news_block_info() {
+    $blocks['theverge_news'] = array(
+      'info' => t('The Verge News'),
+      'cache' => DRUPAL_CACHE_PER_ROLE,
+    );
+
+    return $blocks;
+  }
+
+  /**
+   * Custom API content callback.
+   *
+   * This callback is a custom callback to get The Verge news data.
+   * Here we request the data, preprocesses it and creates a list of news. The 
+   * array '$items' contains all the news, we'll display it as a unordered list
+   * later on.
+   *
+   */
+  function theverge_news_api_content() {
+
+    // API path.
+    $api_url = 'http://www.theverge.com/rss/index.xml';
+
+    // Request data.
+    $request = drupal_http_request($api_url);
+
+    $result = $request->data;
+
+    //Check for curl before doing anything
+    if (function_exists('curl_init')) {
+      //Initialize curl
+      $curl_feed = curl_init('http://www.theverge.com/rss/index.xml');
+      //Curl Options
+      curl_setopt($curl_feed, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($curl_feed, CURLOPT_HEADER, 0);
+      //Store our data
+      $data = curl_exec($curl_feed);
+      //Close curl
+      curl_close($curl_feed);
+    }
+
+    $doc = new SimpleXmlElement($data, LIBXML_NOCDATA);
+
+    $items = parseAtom($doc);
+
+    // If no content is found, return fail.
+    if (empty($items)) {
+      $items[] = array(
+          'data' => 'No news available',
+      );
+    }
+
+    return $items;
+
+  }
+
+  /**
+   * Implements hook_block_view().
+   *
+   * Creates content for our block. It sets the title for the block, and returns
+   * our news (from our custom callback) as a ul-list, with the id 'theverge-news'.
+   *
+   * @url: https://api.drupal.org/api/drupal/modules!block!block.api.php/function/hook_block_view/7
+   */
+  function theverge_news_block_view($delta = '') {
+    $block = array();
+
+    // List attributes.
+    $attributes = array(
+        'id' => 'theverge_news',
+    );
+
+    // Set block title.
+    $block['subject'] = t('The Verge News');
+
+    // Get content from API.
+    $items = theverge_news_api_content();
+
+    // Print list.
+    $block['content'] = theme('item_list', array(
+        'items' => $items,
+        'type' => 'ul',
+        'attributes' => array(
+            'id' => 'theverge-news',
+        ),
+    ));
+
+    return $block;
+  }

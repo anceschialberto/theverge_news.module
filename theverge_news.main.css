@@ -1,0 +1,33 @@
+/***** The Verge NEWS STYLES *****/
+#theverge-news {
+  margin: 0;
+  padding: 0;
+}
+
+#theverge-news li {
+  list-style: none;
+  position: relative;
+  border-top: 1px solid #cdcdcd;
+  padding-top: 5px;
+  padding-bottom: 5px;
+
+}
+
+#theverge-news .headline {
+  padding-bottom: 0px;
+}
+
+#theverge-news .datetime {
+  top: 0;
+  right: 0;
+  color: black;
+  padding: 0px 0px;
+}
+
+#theverge-news .teaser {
+  font-weight: bold;
+}
+
+#theverge-news .description p {
+  margin: 0;
+}
